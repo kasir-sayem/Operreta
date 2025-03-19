@@ -11,7 +11,24 @@ import java.sql.Statement;
  * Utility class for database operations
  */
 public class DatabaseUtil {
-    private static final String DB_URL = "jdbc:sqlite:operetta.db";
+    private static final String DB_URL;
+    
+    static {
+        // Look for database file in the project root directory
+        File dbFile = new File("operetta.db");
+        if (dbFile.exists()) {
+            DB_URL = "jdbc:sqlite:" + dbFile.getAbsolutePath();
+        } else {
+            // Fall back to the data subdirectory
+            File dataDir = new File("data");
+            if (!dataDir.exists()) {
+                dataDir.mkdirs();
+            }
+            dbFile = new File(dataDir, "operetta.db");
+            DB_URL = "jdbc:sqlite:" + dbFile.getAbsolutePath();
+        }
+        System.out.println("Using database at: " + dbFile.getAbsolutePath());
+    }
     
     /**
      * Get a connection to the database
@@ -73,6 +90,25 @@ public class DatabaseUtil {
         } catch (SQLException e) {
             System.err.println("Error initializing database: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Test database connection
+     */
+    public static boolean testConnection() {
+        try (Connection conn = getConnection()) {
+            boolean isConnected = conn != null && !conn.isClosed();
+            if (isConnected) {
+                System.out.println("Database connection successful");
+            } else {
+                System.err.println("Database connection failed");
+            }
+            return isConnected;
+        } catch (SQLException e) {
+            System.err.println("Database connection error: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
     

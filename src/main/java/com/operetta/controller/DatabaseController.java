@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
@@ -229,6 +230,50 @@ public class DatabaseController implements Initializable {
         initializeWriteTab();
         initializeChangeTab();
         initializeDeleteTab();
+        
+        // Setup numeric validation for all fields that should only contain numbers
+        setupNumericValidation();
+        
+        // Add tab selection listener to load data when tabs are selected
+        tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab == changeTab) {
+                System.out.println("Change tab selected - refreshing work dropdown");
+                refreshWorkComboBox();
+            } else if (newTab == deleteTab) {
+                System.out.println("Delete tab selected - refreshing delete dropdown");
+                refreshDeleteWorkComboBox();
+            }
+        });
+        
+        // Immediately populate the dropdowns for the currently selected tab
+        Tab currentTab = tabPane.getSelectionModel().getSelectedItem();
+        if (currentTab == changeTab) {
+            refreshWorkComboBox();
+        } else if (currentTab == deleteTab) {
+            refreshDeleteWorkComboBox();
+        }
+    }
+    
+    /**
+     * Setup numeric validation for numeric fields
+     */
+    private void setupNumericValidation() {
+        // Define a pattern that only accepts integers
+        UnaryOperator<TextFormatter.Change> integerFilter = change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty() || newText.matches("\\d*")) {
+                return change;
+            }
+            return null;
+        };
+        
+        // Apply to all numeric fields
+        newWorkYearField.setTextFormatter(new TextFormatter<>(integerFilter));
+        newWorkActsField.setTextFormatter(new TextFormatter<>(integerFilter));
+        newWorkScenesField.setTextFormatter(new TextFormatter<>(integerFilter));
+        editWorkYearField.setTextFormatter(new TextFormatter<>(integerFilter));
+        editWorkActsField.setTextFormatter(new TextFormatter<>(integerFilter));
+        editWorkScenesField.setTextFormatter(new TextFormatter<>(integerFilter));
     }
     
     /**
@@ -464,6 +509,29 @@ public class DatabaseController implements Initializable {
         
         // Update work button action
         updateWorkButton.setOnAction(event -> updateWork());
+        
+        // Setup the workConnectionsTable
+        setupWorkConnectionsTable();
+    }
+    
+    /**
+     * Setup connections table for selected work
+     */
+    private void setupWorkConnectionsTable() {
+        // Clear any existing columns to avoid duplicates
+        if (workConnectionsTable.getColumns().size() == 0) {
+            TableColumn<Connection, String> typeColumn = new TableColumn<>("Connection Type");
+            typeColumn.setCellValueFactory(data -> 
+                new SimpleStringProperty(data.getValue().getConnectionType().name()));
+            typeColumn.setPrefWidth(150);
+            
+            TableColumn<Connection, String> creatorColumn = new TableColumn<>("Creator");
+            creatorColumn.setCellValueFactory(data -> 
+                new SimpleStringProperty(data.getValue().getCreatorName()));
+            creatorColumn.setPrefWidth(250);
+            
+            workConnectionsTable.getColumns().setAll(typeColumn, creatorColumn);
+        }
     }
     
     /**
@@ -650,32 +718,56 @@ public class DatabaseController implements Initializable {
      */
     private void addNewWork() {
         try {
+            // Reset status before proceeding
+            addWorkStatusLabel.setText("");
+            
             int id = Integer.parseInt(newWorkIdField.getText().trim());
             String title = newWorkTitleField.getText().trim();
-            String original = newWorkOriginalField.getText().trim();
-            String theatre = newWorkTheatreField.getText().trim();
             
-            Integer premiereYear = null;
-            if (!newWorkYearField.getText().trim().isEmpty()) {
-                premiereYear = Integer.parseInt(newWorkYearField.getText().trim());
-            }
-            
-            Integer acts = null;
-            if (!newWorkActsField.getText().trim().isEmpty()) {
-                acts = Integer.parseInt(newWorkActsField.getText().trim());
-            }
-            
-            Integer scenes = null;
-            if (!newWorkScenesField.getText().trim().isEmpty()) {
-                scenes = Integer.parseInt(newWorkScenesField.getText().trim());
-            }
-            
-            // Validate required fields
             if (title.isEmpty()) {
                 addWorkStatusLabel.setText("Error: Title is required");
                 addWorkStatusLabel.getStyleClass().remove("status-label-success");
                 addWorkStatusLabel.getStyleClass().add("status-label-error");
                 return;
+            }
+            
+            String original = newWorkOriginalField.getText().trim();
+            String theatre = newWorkTheatreField.getText().trim();
+            
+            Integer premiereYear = null;
+            if (!newWorkYearField.getText().trim().isEmpty()) {
+                try {
+                    premiereYear = Integer.parseInt(newWorkYearField.getText().trim());
+                } catch (NumberFormatException e) {
+                    addWorkStatusLabel.setText("Error: Invalid year format");
+                    addWorkStatusLabel.getStyleClass().remove("status-label-success");
+                    addWorkStatusLabel.getStyleClass().add("status-label-error");
+                    return;
+                }
+            }
+            
+            Integer acts = null;
+            if (!newWorkActsField.getText().trim().isEmpty()) {
+                try {
+                    acts = Integer.parseInt(newWorkActsField.getText().trim());
+                } catch (NumberFormatException e) {
+                    addWorkStatusLabel.setText("Error: Invalid acts format");
+                    addWorkStatusLabel.getStyleClass().remove("status-label-success");
+                    addWorkStatusLabel.getStyleClass().add("status-label-error");
+                    return;
+                }
+            }
+            
+            Integer scenes = null;
+            if (!newWorkScenesField.getText().trim().isEmpty()) {
+                try {
+                    scenes = Integer.parseInt(newWorkScenesField.getText().trim());
+                } catch (NumberFormatException e) {
+                    addWorkStatusLabel.setText("Error: Invalid scenes format");
+                    addWorkStatusLabel.getStyleClass().remove("status-label-success");
+                    addWorkStatusLabel.getStyleClass().add("status-label-error");
+                    return;
+                }
             }
             
             Work work = new Work(id, title, original.isEmpty() ? null : original, 
@@ -736,17 +828,38 @@ public class DatabaseController implements Initializable {
             
             Integer premiereYear = null;
             if (!editWorkYearField.getText().trim().isEmpty()) {
-                premiereYear = Integer.parseInt(editWorkYearField.getText().trim());
+                try {
+                    premiereYear = Integer.parseInt(editWorkYearField.getText().trim());
+                } catch (NumberFormatException e) {
+                    updateWorkStatusLabel.setText("Error: Invalid year format");
+                    updateWorkStatusLabel.getStyleClass().remove("status-label-success");
+                    updateWorkStatusLabel.getStyleClass().add("status-label-error");
+                    return;
+                }
             }
             
             Integer acts = null;
             if (!editWorkActsField.getText().trim().isEmpty()) {
-                acts = Integer.parseInt(editWorkActsField.getText().trim());
+                try {
+                    acts = Integer.parseInt(editWorkActsField.getText().trim());
+                } catch (NumberFormatException e) {
+                    updateWorkStatusLabel.setText("Error: Invalid acts format");
+                    updateWorkStatusLabel.getStyleClass().remove("status-label-success");
+                    updateWorkStatusLabel.getStyleClass().add("status-label-error");
+                    return;
+                }
             }
             
             Integer scenes = null;
             if (!editWorkScenesField.getText().trim().isEmpty()) {
-                scenes = Integer.parseInt(editWorkScenesField.getText().trim());
+                try {
+                    scenes = Integer.parseInt(editWorkScenesField.getText().trim());
+                } catch (NumberFormatException e) {
+                    updateWorkStatusLabel.setText("Error: Invalid scenes format");
+                    updateWorkStatusLabel.getStyleClass().remove("status-label-success");
+                    updateWorkStatusLabel.getStyleClass().add("status-label-error");
+                    return;
+                }
             }
             
             // Validate required fields
@@ -846,80 +959,124 @@ public class DatabaseController implements Initializable {
     }
     
     /**
+     * Manual refresh for work combo box
+     */
+    @FXML
+    private void manualRefreshWorkComboBox() {
+        refreshWorkComboBox();
+    }
+    
+    /**
+     * Manual refresh for delete work combo box
+     */
+    @FXML
+    private void manualRefreshDeleteComboBox() {
+        refreshDeleteWorkComboBox();
+    }
+    
+    /**
      * Refresh the work combo box in the Change tab
      */
     private void refreshWorkComboBox() {
-        List<Work> works = databaseService.getAllWorks();
-        ObservableList<Work> data = FXCollections.observableArrayList(works);
-        workSelectComboBox.setItems(data);
-        
-        // Set cell factory for better display
-        workSelectComboBox.setCellFactory(new Callback<ListView<Work>, ListCell<Work>>() {
-            @Override
-            public ListCell<Work> call(ListView<Work> param) {
-                return new ListCell<Work>() {
-                    @Override
-                    protected void updateItem(Work item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty || item == null) {
-                            setText(null);
-                        } else {
-                            setText(item.getId() + " - " + item.getTitle());
+        try {
+            System.out.println("Refreshing work combo box...");
+            List<Work> works = databaseService.getAllWorks();
+            System.out.println("Found " + works.size() + " works");
+            
+            if (workSelectComboBox != null) {
+                workSelectComboBox.getItems().clear();
+                workSelectComboBox.getItems().addAll(works);
+                workSelectComboBox.setPromptText(works.isEmpty() ? 
+                    "No works available" : "Select a work to edit");
+            } else {
+                System.err.println("workSelectComboBox is null!");
+            }
+            
+            // Set cell factory for better display
+            workSelectComboBox.setCellFactory(new Callback<ListView<Work>, ListCell<Work>>() {
+                @Override
+                public ListCell<Work> call(ListView<Work> param) {
+                    return new ListCell<Work>() {
+                        @Override
+                        protected void updateItem(Work item, boolean empty) {
+                            super.updateItem(item, empty);
+                            if (empty || item == null) {
+                                setText(null);
+                            } else {
+                                setText(item.getId() + " - " + item.getTitle());
+                            }
                         }
-                    }
-                };
-            }
-        });
-        
-        workSelectComboBox.setButtonCell(new ListCell<Work>() {
-            @Override
-            protected void updateItem(Work item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText("Select a work");
-                } else {
-                    setText(item.getId() + " - " + item.getTitle());
+                    };
                 }
-            }
-        });
+            });
+            
+            workSelectComboBox.setButtonCell(new ListCell<Work>() {
+                @Override
+                protected void updateItem(Work item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText("Select a work");
+                    } else {
+                        setText(item.getId() + " - " + item.getTitle());
+                    }
+                }
+            });
+        } catch (Exception e) {
+            System.err.println("Error refreshing work combo box: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**
      * Refresh the work combo box in the Delete tab
      */
     private void refreshDeleteWorkComboBox() {
-        List<Work> works = databaseService.getAllWorks();
-        ObservableList<Work> data = FXCollections.observableArrayList(works);
-        deleteWorkComboBox.setItems(data);
-        
-        // Set cell factory for better display
-        deleteWorkComboBox.setCellFactory(new Callback<ListView<Work>, ListCell<Work>>() {
-            @Override
-            public ListCell<Work> call(ListView<Work> param) {
-                return new ListCell<Work>() {
-                    @Override
-                    protected void updateItem(Work item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty || item == null) {
-                            setText(null);
-                        } else {
-                            setText(item.getId() + " - " + item.getTitle());
+        try {
+            System.out.println("Refreshing delete work combo box...");
+            List<Work> works = databaseService.getAllWorks();
+            System.out.println("Found " + works.size() + " works");
+            
+            if (deleteWorkComboBox != null) {
+                deleteWorkComboBox.getItems().clear();
+                deleteWorkComboBox.getItems().addAll(works);
+                deleteWorkComboBox.setPromptText(works.isEmpty() ? 
+                    "No works available" : "Select a work to delete");
+            } else {
+                System.err.println("deleteWorkComboBox is null!");
+            }
+            
+            // Set cell factory for better display
+            deleteWorkComboBox.setCellFactory(new Callback<ListView<Work>, ListCell<Work>>() {
+                @Override
+                public ListCell<Work> call(ListView<Work> param) {
+                    return new ListCell<Work>() {
+                        @Override
+                        protected void updateItem(Work item, boolean empty) {
+                            super.updateItem(item, empty);
+                            if (empty || item == null) {
+                                setText(null);
+                            } else {
+                                setText(item.getId() + " - " + item.getTitle());
+                            }
                         }
-                    }
-                };
-            }
-        });
-        
-        deleteWorkComboBox.setButtonCell(new ListCell<Work>() {
-            @Override
-            protected void updateItem(Work item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText("Select a work to delete");
-                } else {
-                    setText(item.getId() + " - " + item.getTitle());
+                    };
                 }
-            }
-        });
+            });
+            
+            deleteWorkComboBox.setButtonCell(new ListCell<Work>() {
+                @Override
+                protected void updateItem(Work item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText("Select a work to delete");
+                    } else {
+                        setText(item.getId() + " - " + item.getTitle());
+                    }
+                }
+            });
+        } catch (Exception e) {
+            System.err.println("Error refreshing delete work combo box: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

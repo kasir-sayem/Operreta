@@ -17,6 +17,14 @@ import java.util.Optional;
 public class DatabaseService {
     
     /**
+     * Helper method to safely retrieve Integer values
+     */
+    private Integer getIntegerSafely(ResultSet rs, String columnName) throws SQLException {
+        int value = rs.getInt(columnName);
+        return rs.wasNull() ? null : value;
+    }
+    
+    /**
      * Get all works from the database
      */
     public List<Work> getAllWorks() {
@@ -32,9 +40,9 @@ public class DatabaseService {
                         rs.getString("title"),
                         rs.getString("original"),
                         rs.getString("theatre"),
-                        rs.getObject("pyear", Integer.class),
-                        rs.getObject("acts", Integer.class),
-                        rs.getObject("scenes", Integer.class)
+                        getIntegerSafely(rs, "pyear"),
+                        getIntegerSafely(rs, "acts"),
+                        getIntegerSafely(rs, "scenes")
                 );
                 works.add(work);
             }
@@ -62,9 +70,9 @@ public class DatabaseService {
                         rs.getString("title"),
                         rs.getString("original"),
                         rs.getString("theatre"),
-                        rs.getObject("pyear", Integer.class),
-                        rs.getObject("acts", Integer.class),
-                        rs.getObject("scenes", Integer.class)
+                        getIntegerSafely(rs, "pyear"),
+                        getIntegerSafely(rs, "acts"),
+                        getIntegerSafely(rs, "scenes")
                 );
                 return Optional.of(work);
             }
