@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 
 /**
  * Controller for the SOAP client view
+ * Implements all features according to MNB documentation
  */
 public class SoapController implements Initializable {
     
@@ -101,50 +102,132 @@ public class SoapController implements Initializable {
         LocalDate now = LocalDate.now();
         LocalDate oneMonthAgo = now.minusMonths(1);
         
-        startDatePicker.setValue(oneMonthAgo);
-        endDatePicker.setValue(now);
+        // Configure date pickers
+        setupDatePicker(startDatePicker, oneMonthAgo);
+        setupDatePicker(endDatePicker, now);
+        setupDatePicker(graphStartDatePicker, oneMonthAgo);
+        setupDatePicker(graphEndDatePicker, now);
         
-        graphStartDatePicker.setValue(oneMonthAgo);
-        graphEndDatePicker.setValue(now);
-        
-        // Initialize currency combo boxes
-        loadCurrencies();
+        // Initialize currency combo boxes - first check available date range
+        getDateRangeAndCurrencies();
         
         // Set up button actions
         downloadAllButton.setOnAction(event -> downloadAllData());
         downloadFilteredButton.setOnAction(event -> downloadFilteredData());
         generateGraphButton.setOnAction(event -> generateGraph());
+        
+        // Set up initial progress indicators state
+        downloadProgress.setVisible(false);
+        downloadFilteredProgress.setVisible(false);
+        graphProgress.setVisible(false);
+        
+        // Initialize status labels
+        downloadStatusLabel.setText("Click the button to download all exchange rate data.");
+        downloadFilteredStatusLabel.setText("Select parameters and click the button to download filtered data.");
     }
     
     /**
-     * Load available currencies from the MNB web service
+     * Set up date picker with initial value and validation
      */
-    private void loadCurrencies() {
-        Task<List<String>> task = new Task<>() {
+    private void setupDatePicker(DatePicker datePicker, LocalDate initialValue) {
+        datePicker.setValue(initialValue);
+        
+        // Add validation to prevent future dates
+        datePicker.setDayCellFactory(picker -> new DateCell() {
             @Override
-            protected List<String> call() throws Exception {
-                return soapService.getCurrencies();
+            public void updateItem(LocalDate date, boolean empty) {
+                super.updateItem(date, empty);
+                setDisable(empty || date.isAfter(LocalDate.now()));
+            }
+        });
+    }
+    
+    /**
+     * Get available date range and currencies from the MNB service
+     */
+    private void getDateRangeAndCurrencies() {
+        downloadProgress.setVisible(true);
+        downloadFilteredProgress.setVisible(true);
+        graphProgress.setVisible(true);
+        
+        downloadStatusLabel.setText("Loading available currencies and date range...");
+        downloadFilteredStatusLabel.setText("Loading available currencies and date range...");
+        
+        Task<Map<String, Object>> task = new Task<>() {
+            @Override
+            protected Map<String, Object> call() throws Exception {
+                // Use GetInfo method to get both date range and currencies
+                try {
+                    return soapService.getInfo();
+                } catch (Exception e) {
+                    // If GetInfo fails, try GetCurrencies as fallback
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("currencies", soapService.getCurrencies());
+                    return result;
+                }
             }
         };
         
         task.setOnSucceeded(event -> {
-            List<String> currencies = task.getValue();
-            currencyComboBox.setItems(FXCollections.observableArrayList(currencies));
-            graphCurrencyComboBox.setItems(FXCollections.observableArrayList(currencies));
+            Map<String, Object> info = task.getValue();
             
-            if (!currencies.isEmpty()) {
-                currencyComboBox.setValue(currencies.get(0));
-                graphCurrencyComboBox.setValue(currencies.get(0));
+            // Set date range if available
+            if (info.containsKey("firstDate") && info.containsKey("lastDate")) {
+                String firstDate = (String) info.get("firstDate");
+                String lastDate = (String) info.get("lastDate");
+                
+                downloadStatusLabel.setText("Available data from " + firstDate + " to " + lastDate);
             }
+            
+            // Set currencies in combo boxes
+            if (info.containsKey("currencies")) {
+                @SuppressWarnings("unchecked")
+                List<String> currencies = (List<String>) info.get("currencies");
+                
+                if (!currencies.isEmpty()) {
+                    // Set items for combo boxes
+                    currencyComboBox.setItems(FXCollections.observableArrayList(currencies));
+                    graphCurrencyComboBox.setItems(FXCollections.observableArrayList(currencies));
+                    
+                    // Set default selections - prefer EUR or USD if available
+                    String defaultCurrency = "HUF";
+                    if (currencies.contains("EUR")) defaultCurrency = "EUR";
+                    else if (currencies.contains("USD")) defaultCurrency = "USD";
+                    else if (!currencies.isEmpty()) defaultCurrency = currencies.get(0);
+                    
+                    currencyComboBox.setValue(defaultCurrency);
+                    graphCurrencyComboBox.setValue(defaultCurrency);
+                }
+            }
+            
+            // Hide progress indicators
+            downloadProgress.setVisible(false);
+            downloadFilteredProgress.setVisible(false);
+            graphProgress.setVisible(false);
         });
         
         task.setOnFailed(event -> {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText("Failed to load currencies");
-            alert.setContentText("An error occurred while loading currencies: " + 
-                               task.getException().getMessage());
-            alert.showAndWait();
+            // Handle error and hide progress indicators
+            downloadProgress.setVisible(false);
+            downloadFilteredProgress.setVisible(false);
+            graphProgress.setVisible(false);
+            
+            Throwable exception = task.getException();
+            System.err.println("Error loading currencies: " + exception.getMessage());
+            exception.printStackTrace();
+            
+            downloadStatusLabel.setText("Error loading currencies. Please try again.");
+            downloadFilteredStatusLabel.setText("Error loading currencies. Please try again.");
+            
+            showAlert("Error", "Failed to load currencies", 
+                     "An error occurred while loading currencies: " + exception.getMessage());
+            
+            // Load hardcoded currencies as fallback
+            List<String> fallbackCurrencies = Arrays.asList("EUR", "USD", "GBP", "CHF", "JPY");
+            currencyComboBox.setItems(FXCollections.observableArrayList(fallbackCurrencies));
+            graphCurrencyComboBox.setItems(FXCollections.observableArrayList(fallbackCurrencies));
+            currencyComboBox.setValue("EUR");
+            graphCurrencyComboBox.setValue("EUR");
         });
         
         executorService.submit(task);
@@ -155,7 +238,7 @@ public class SoapController implements Initializable {
      */
     private void downloadAllData() {
         downloadProgress.setVisible(true);
-        downloadStatusLabel.setText("Downloading...");
+        downloadStatusLabel.setText("Downloading all exchange rate data...");
         
         Task<Void> task = new Task<>() {
             @Override
@@ -172,12 +255,25 @@ public class SoapController implements Initializable {
         
         task.setOnSucceeded(event -> {
             downloadProgress.setVisible(false);
-            downloadStatusLabel.setText("Download completed successfully.");
+            downloadStatusLabel.setText("Download completed successfully. File saved to c:/data/Bank.txt");
+            
+            // Show success message
+            showAlert(Alert.AlertType.INFORMATION, "Success", 
+                     "Download Complete", "All exchange rate data has been downloaded successfully.");
         });
         
         task.setOnFailed(event -> {
             downloadProgress.setVisible(false);
-            downloadStatusLabel.setText("Download failed: " + task.getException().getMessage());
+            
+            Throwable exception = task.getException();
+            System.err.println("Error downloading data: " + exception.getMessage());
+            exception.printStackTrace();
+            
+            downloadStatusLabel.setText("Download failed: " + exception.getMessage());
+            
+            // Show error message
+            showAlert("Error", "Download Failed", 
+                     "An error occurred during download: " + exception.getMessage());
         });
         
         executorService.submit(task);
@@ -202,7 +298,7 @@ public class SoapController implements Initializable {
         }
         
         downloadFilteredProgress.setVisible(true);
-        downloadFilteredStatusLabel.setText("Downloading...");
+        downloadFilteredStatusLabel.setText("Downloading filtered exchange rate data...");
         
         Task<Void> task = new Task<>() {
             @Override
@@ -222,12 +318,25 @@ public class SoapController implements Initializable {
         
         task.setOnSucceeded(event -> {
             downloadFilteredProgress.setVisible(false);
-            downloadFilteredStatusLabel.setText("Download completed successfully.");
+            downloadFilteredStatusLabel.setText("Download completed successfully. File saved to c:/data/Bank.txt");
+            
+            // Show success message
+            showAlert(Alert.AlertType.INFORMATION, "Success", 
+                     "Download Complete", "Filtered exchange rate data has been downloaded successfully.");
         });
         
         task.setOnFailed(event -> {
             downloadFilteredProgress.setVisible(false);
-            downloadFilteredStatusLabel.setText("Download failed: " + task.getException().getMessage());
+            
+            Throwable exception = task.getException();
+            System.err.println("Error downloading filtered data: " + exception.getMessage());
+            exception.printStackTrace();
+            
+            downloadFilteredStatusLabel.setText("Download failed: " + exception.getMessage());
+            
+            // Show error message
+            showAlert("Error", "Download Failed", 
+                     "An error occurred during download: " + exception.getMessage());
         });
         
         executorService.submit(task);
@@ -242,20 +351,12 @@ public class SoapController implements Initializable {
         LocalDate endDate = graphEndDatePicker.getValue();
         
         if (currency == null || startDate == null || endDate == null) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText("Missing Data");
-            alert.setContentText("Please select all required fields.");
-            alert.showAndWait();
+            showAlert("Error", "Missing Data", "Please select all required fields.");
             return;
         }
         
         if (endDate.isBefore(startDate)) {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText("Invalid Date Range");
-            alert.setContentText("End date must be after start date.");
-            alert.showAndWait();
+            showAlert("Error", "Invalid Date Range", "End date must be after start date.");
             return;
         }
         
@@ -273,17 +374,27 @@ public class SoapController implements Initializable {
         
         task.setOnSucceeded(event -> {
             Map<String, Double> exchangeRates = task.getValue();
+            
+            if (exchangeRates.isEmpty()) {
+                graphProgress.setVisible(false);
+                showAlert("Warning", "No Data Available", 
+                         "No exchange rate data found for the selected currency and date range.");
+                return;
+            }
+            
             createExchangeRateChart(exchangeRates, currency);
             graphProgress.setVisible(false);
         });
         
         task.setOnFailed(event -> {
             graphProgress.setVisible(false);
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Error");
-            alert.setHeaderText("Failed to Generate Graph");
-            alert.setContentText("An error occurred: " + task.getException().getMessage());
-            alert.showAndWait();
+            
+            Throwable exception = task.getException();
+            System.err.println("Error generating graph: " + exception.getMessage());
+            exception.printStackTrace();
+            
+            showAlert("Error", "Failed to Generate Graph", 
+                     "An error occurred: " + exception.getMessage());
         });
         
         executorService.submit(task);
@@ -304,14 +415,24 @@ public class SoapController implements Initializable {
         List<Map.Entry<String, Double>> sortedEntries = new ArrayList<>(exchangeRates.entrySet());
         sortedEntries.sort(Comparator.comparing(Map.Entry::getKey));
         
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd");
+        SimpleDateFormat displayFormat = new SimpleDateFormat("MMM dd");
         
         // Add data points to the series
         int index = 0;
+        Map<Integer, String> dateLabels = new HashMap<>();
+        
         for (Map.Entry<String, Double> entry : sortedEntries) {
             try {
                 String dateStr = entry.getKey();
                 double rate = entry.getValue();
+                
+                // Parse the date for better display
+                Date date = inputFormat.parse(dateStr);
+                String formattedDate = displayFormat.format(date);
+                
+                // Store the index-to-date mapping for axis labels
+                dateLabels.put(index, formattedDate);
                 
                 // Use index for x-axis to ensure even spacing
                 series.getData().add(new XYChart.Data<>(index++, rate));
@@ -325,11 +446,76 @@ public class SoapController implements Initializable {
         Platform.runLater(() -> {
             exchangeRateChart.getData().add(series);
             
-            // Update chart title
-            exchangeRateChart.setTitle(currency + " Exchange Rate");
+            // Update chart title and axis labels
+            exchangeRateChart.setTitle(currency + " Exchange Rate (" + 
+                                     graphStartDatePicker.getValue() + " to " + 
+                                     graphEndDatePicker.getValue() + ")");
+            
+            // Customize the chart for better visibility
+            if (series.getData().size() > 0) {
+                // Improve the y-axis scaling
+                NumberAxis yAxis = (NumberAxis) exchangeRateChart.getYAxis();
+                
+                // Find min and max values
+                DoubleSummaryStatistics stats = exchangeRates.values().stream()
+                    .mapToDouble(Double::doubleValue)
+                    .summaryStatistics();
+                
+                double min = stats.getMin();
+                double max = stats.getMax();
+                double padding = (max - min) * 0.1; // 10% padding
+                
+                if (max - min > 0.0001) { // Check if there's significant variation
+                    yAxis.setAutoRanging(false);
+                    yAxis.setLowerBound(Math.max(0, min - padding));
+                    yAxis.setUpperBound(max + padding);
+                    yAxis.setTickUnit((max - min) / 8);
+                }
+                
+                // Customize the x-axis
+                NumberAxis xAxis = (NumberAxis) exchangeRateChart.getXAxis();
+                xAxis.setLabel("Date");
+                
+                // Add tooltips to the data points for better user experience
+                for (XYChart.Data<Number, Number> data : series.getData()) {
+                    int dataIndex = data.getXValue().intValue();
+                    String date = dateLabels.get(dataIndex);
+                    double value = data.getYValue().doubleValue();
+                    
+                    Tooltip tooltip = new Tooltip(
+                        date + "\nValue: " + String.format("%.4f", value));
+                    
+                    Tooltip.install(data.getNode(), tooltip);
+                    
+                    // Make the data points more visible
+                    if (data.getNode() != null) {
+                        data.getNode().setStyle("-fx-background-color: #3498db;");
+                    }
+                }
+            }
             
             // Make the chart visible
             exchangeRateChart.setVisible(true);
+        });
+    }
+    
+    /**
+     * Show an alert dialog with the specified parameters
+     */
+    private void showAlert(String title, String header, String content) {
+        showAlert(Alert.AlertType.ERROR, title, header, content);
+    }
+    
+    /**
+     * Show an alert dialog with the specified parameters and type
+     */
+    private void showAlert(Alert.AlertType type, String title, String header, String content) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(type);
+            alert.setTitle(title);
+            alert.setHeaderText(header);
+            alert.setContentText(content);
+            alert.showAndWait();
         });
     }
     
