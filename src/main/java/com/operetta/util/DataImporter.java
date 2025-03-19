@@ -25,7 +25,9 @@ public class DataImporter {
             
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                return rs.getInt(1) > 0;
+                int count = rs.getInt(1);
+                System.out.println("Found " + count + " records in works table");
+                return count > 0;
             }
         } catch (SQLException e) {
             System.err.println("Error checking if data is imported: " + e.getMessage());
@@ -42,11 +44,24 @@ public class DataImporter {
             return;
         }
         
+        // Check if tables exist
+        if (!DatabaseUtil.tableExists("works") || 
+            !DatabaseUtil.tableExists("creators") || 
+            !DatabaseUtil.tableExists("connections")) {
+            System.out.println("Database tables do not exist. Please initialize the database first.");
+            return;
+        }
+        
         System.out.println("Starting data import...");
         
-        importWorks();
-        importCreators();
-        importConnections();
+        // Import in correct order and check for success at each step
+        boolean worksImported = importWorks();
+        if (worksImported) {
+            boolean creatorsImported = importCreators();
+            if (creatorsImported) {
+                importConnections();
+            }
+        }
         
         System.out.println("Data import completed.");
     }
@@ -54,9 +69,9 @@ public class DataImporter {
     /**
      * Import works data from works.txt
      */
-    private static void importWorks() {
+    private static boolean importWorks() {
         String filePath = "data/works.txt";
-        ensureFileExists(filePath, "works.txt");
+        ensureFileExists(filePath, "/works.txt");
         
         try (Connection conn = DatabaseUtil.getConnection();
              BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -148,19 +163,21 @@ public class DataImporter {
                 conn.commit();
                 conn.setAutoCommit(true);
                 System.out.println("Works import completed.");
+                return true;
             }
         } catch (IOException | SQLException e) {
             System.err.println("Error importing works: " + e.getMessage());
             e.printStackTrace();
+            return false;
         }
     }
     
     /**
      * Import creators data from creators.txt
      */
-    private static void importCreators() {
+    private static boolean importCreators() {
         String filePath = "data/creators.txt";
-        ensureFileExists(filePath, "creators.txt");
+        ensureFileExists(filePath, "/creators.txt");
         
         try (Connection conn = DatabaseUtil.getConnection();
              BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -203,19 +220,21 @@ public class DataImporter {
                 conn.commit();
                 conn.setAutoCommit(true);
                 System.out.println("Creators import completed.");
+                return true;
             }
         } catch (IOException | SQLException e) {
             System.err.println("Error importing creators: " + e.getMessage());
             e.printStackTrace();
+            return false;
         }
     }
     
     /**
      * Import connections data from connections.txt
      */
-    private static void importConnections() {
+    private static boolean importConnections() {
         String filePath = "data/connections.txt";
-        ensureFileExists(filePath, "connections.txt");
+        ensureFileExists(filePath, "/connections.txt");
         
         try (Connection conn = DatabaseUtil.getConnection();
              BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -260,45 +279,26 @@ public class DataImporter {
                 conn.commit();
                 conn.setAutoCommit(true);
                 System.out.println("Connections import completed.");
+                return true;
             }
         } catch (IOException | SQLException e) {
             System.err.println("Error importing connections: " + e.getMessage());
             e.printStackTrace();
+            return false;
         }
     }
     
     /**
-     * Ensure that a file exists at the given path, copying from resources if necessary
+     * Ensure that a file exists at the given path
      */
     private static void ensureFileExists(String targetPath, String resourcePath) {
         File targetFile = new File(targetPath);
         
         if (!targetFile.exists()) {
-            System.out.println("File not found at " + targetPath + ", copying from resources...");
-            
-            File targetDir = targetFile.getParentFile();
-            if (!targetDir.exists()) {
-                targetDir.mkdirs();
-            }
-            
-            try (InputStream is = DataImporter.class.getResourceAsStream(resourcePath);
-                 OutputStream os = new FileOutputStream(targetFile)) {
-                
-                if (is == null) {
-                    throw new IOException("Resource not found: " + resourcePath);
-                }
-                
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = is.read(buffer)) > 0) {
-                    os.write(buffer, 0, length);
-                }
-                
-                System.out.println("File copied successfully to " + targetPath);
-            } catch (IOException e) {
-                System.err.println("Error copying file: " + e.getMessage());
-                e.printStackTrace();
-            }
+            System.out.println("File not found at " + targetPath);
+            throw new RuntimeException("Required file not found: " + targetPath);
+        } else {
+            System.out.println("Found file at " + targetPath);
         }
     }
 }

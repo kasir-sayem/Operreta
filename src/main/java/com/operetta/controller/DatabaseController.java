@@ -9,15 +9,24 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.util.Callback;
 
 import java.net.URL;
+import java.time.Year;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Controller for the database view
@@ -92,6 +101,34 @@ public class DatabaseController implements Initializable {
     @FXML
     private TableColumn<Connection, String> filteredCreatorColumn;
     
+    // Advanced filtering components
+    @FXML
+    private Slider minYearSlider;
+    
+    @FXML
+    private Slider maxYearSlider;
+    
+    @FXML
+    private Label minYearLabel;
+    
+    @FXML
+    private Label maxYearLabel;
+    
+    @FXML
+    private CheckBox musicCheckBox;
+    
+    @FXML
+    private CheckBox librettoCheckBox;
+    
+    @FXML
+    private CheckBox translationCheckBox;
+    
+    @FXML
+    private ComboBox<Creator> creatorComboBox;
+    
+    @FXML
+    private ChoiceBox<String> creatorRoleChoice;
+    
     // Write tab components
     @FXML
     private TextField newWorkIdField;
@@ -148,6 +185,9 @@ public class DatabaseController implements Initializable {
     @FXML
     private Label updateWorkStatusLabel;
     
+    @FXML
+    private TableView<Connection> workConnectionsTable;
+    
     // Delete tab components
     @FXML
     private ComboBox<Work> deleteWorkComboBox;
@@ -170,8 +210,19 @@ public class DatabaseController implements Initializable {
     @FXML
     private Label workYearLabel;
     
+    // For filtered list
+    private FilteredList<Connection> filteredData;
+    private ObservableList<Connection> allConnections;
+    
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
+        // Set IDs for CSS styling
+        readTab.setId("readTab");
+        read2Tab.setId("read2Tab");
+        writeTab.setId("writeTab");
+        changeTab.setId("changeTab");
+        deleteTab.setId("deleteTab");
+        
         // Initialize tables and UI components
         initializeReadTab();
         initializeRead2Tab();
@@ -191,6 +242,32 @@ public class DatabaseController implements Initializable {
                 new SimpleStringProperty(data.getValue().getConnectionType().name()));
         creatorColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCreatorName()));
         
+        // Style the connection type column
+        connectionTypeColumn.setCellFactory(column -> new TableCell<Connection, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(null);
+                    Label label = new Label(item);
+                    label.getStyleClass().add("connection-type-chip");
+                    
+                    if (item.equals("MUSIC")) {
+                        label.getStyleClass().add("music-chip");
+                    } else if (item.equals("LIBRETTO")) {
+                        label.getStyleClass().add("libretto-chip");
+                    } else if (item.equals("TRANSLATION")) {
+                        label.getStyleClass().add("translation-chip");
+                    }
+                    
+                    setGraphic(label);
+                }
+            }
+        });
+        
         // Load all connections with details
         refreshConnectionTable();
     }
@@ -206,11 +283,143 @@ public class DatabaseController implements Initializable {
                 new SimpleStringProperty(data.getValue().getConnectionType().name()));
         filteredCreatorColumn.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getCreatorName()));
         
+        // Style the connection type column
+        filteredConnectionTypeColumn.setCellFactory(column -> new TableCell<Connection, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    setText(null);
+                    Label label = new Label(item);
+                    label.getStyleClass().add("connection-type-chip");
+                    
+                    if (item.equals("MUSIC")) {
+                        label.getStyleClass().add("music-chip");
+                    } else if (item.equals("LIBRETTO")) {
+                        label.getStyleClass().add("libretto-chip");
+                    } else if (item.equals("TRANSLATION")) {
+                        label.getStyleClass().add("translation-chip");
+                    }
+                    
+                    setGraphic(label);
+                }
+            }
+        });
+        
         // Set up filter components
         connectionTypeComboBox.setItems(FXCollections.observableArrayList(ConnectionType.values()));
         connectionTypeComboBox.setPromptText("Select connection type");
         
+        // Initialize connection type checkboxes
+        musicCheckBox.setSelected(true);
+        librettoCheckBox.setSelected(true);
+        translationCheckBox.setSelected(true);
+        
+        // Setup creator role choice
+        creatorRoleChoice.setItems(FXCollections.observableArrayList(
+                "Any Role", "Composer", "Librettist", "Translator"));
+        creatorRoleChoice.setValue("Any Role");
+        
+        // Populate creator combo box
+        List<Creator> creators = databaseService.getAllCreators();
+        creatorComboBox.setItems(FXCollections.observableArrayList(creators));
+        creatorComboBox.setCellFactory(new Callback<ListView<Creator>, ListCell<Creator>>() {
+            @Override
+            public ListCell<Creator> call(ListView<Creator> param) {
+                return new ListCell<Creator>() {
+                    @Override
+                    protected void updateItem(Creator item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else {
+                            setText(item.getName());
+                        }
+                    }
+                };
+            }
+        });
+        creatorComboBox.setButtonCell(new ListCell<Creator>() {
+            @Override
+            protected void updateItem(Creator item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("Select Creator");
+                } else {
+                    setText(item.getName());
+                }
+            }
+        });
+        
+        // Load and setup year range slider
+        setupYearRangeSlider();
+        
+        // Load all connections initially
+        allConnections = FXCollections.observableArrayList(databaseService.getAllConnectionsWithDetails());
+        filteredData = new FilteredList<>(allConnections, p -> true);
+        filteredConnectionTable.setItems(filteredData);
+        
+        // Filter button action
         filterButton.setOnAction(event -> applyFilters());
+    }
+    
+    /**
+     * Setup year range slider with min/max years from database
+     */
+    private void setupYearRangeSlider() {
+        List<Work> works = databaseService.getAllWorks();
+        int minYear = Integer.MAX_VALUE;
+        int maxYear = Integer.MIN_VALUE;
+        int currentYear = Year.now().getValue();
+        
+        for (Work work : works) {
+            if (work.getPremiereYear() != null) {
+                minYear = Math.min(minYear, work.getPremiereYear());
+                maxYear = Math.max(maxYear, work.getPremiereYear());
+            }
+        }
+        
+        // Default values if no data
+        if (minYear == Integer.MAX_VALUE) minYear = 1880;
+        if (maxYear == Integer.MIN_VALUE) maxYear = currentYear;
+        
+        // Configure min year slider
+        minYearSlider.setMin(minYear);
+        minYearSlider.setMax(maxYear);
+        minYearSlider.setValue(minYear);
+        
+        // Configure max year slider
+        maxYearSlider.setMin(minYear);
+        maxYearSlider.setMax(maxYear);
+        maxYearSlider.setValue(maxYear);
+        
+        // Update labels
+        minYearLabel.setText(String.valueOf(minYear));
+        maxYearLabel.setText(String.valueOf(maxYear));
+        
+        // Add listeners to update labels
+        minYearSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            int value = newVal.intValue();
+            minYearLabel.setText(String.valueOf(value));
+            
+            // Ensure min doesn't exceed max
+            if (value > maxYearSlider.getValue()) {
+                maxYearSlider.setValue(value);
+            }
+        });
+        
+        maxYearSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+            int value = newVal.intValue();
+            maxYearLabel.setText(String.valueOf(value));
+            
+            // Ensure max doesn't go below min
+            if (value < minYearSlider.getValue()) {
+                minYearSlider.setValue(value);
+            }
+        });
     }
     
     /**
@@ -247,11 +456,28 @@ public class DatabaseController implements Initializable {
                 
                 editWorkScenesField.setText(selectedWork.getScenes() != null ? 
                         selectedWork.getScenes().toString() : "");
+                
+                // Load connections for this work
+                loadWorkConnections(selectedWork.getId());
             }
         });
         
         // Update work button action
         updateWorkButton.setOnAction(event -> updateWork());
+    }
+    
+    /**
+     * Load connections for a specific work
+     */
+    private void loadWorkConnections(int workId) {
+        List<Connection> connections = databaseService.getFilteredConnections(null, null, null)
+            .stream()
+            .filter(c -> c.getWorkId() == workId)
+            .collect(Collectors.toList());
+        
+        if (workConnectionsTable != null) {
+            workConnectionsTable.setItems(FXCollections.observableArrayList(connections));
+        }
     }
     
     /**
@@ -271,6 +497,16 @@ public class DatabaseController implements Initializable {
                         selectedWork.getPremiereYear().toString() : "N/A");
                 
                 workDetailsBox.setVisible(true);
+                
+                // Count connections to show warning
+                int connectionCount = countWorkConnections(selectedWork.getId());
+                if (connectionCount > 0) {
+                    deleteWorkStatusLabel.setText("Warning: This will also delete " + connectionCount + 
+                                                " connection" + (connectionCount > 1 ? "s" : ""));
+                    deleteWorkStatusLabel.setTextFill(Color.ORANGE);
+                } else {
+                    deleteWorkStatusLabel.setText("");
+                }
             } else {
                 workDetailsBox.setVisible(false);
             }
@@ -284,12 +520,28 @@ public class DatabaseController implements Initializable {
     }
     
     /**
+     * Count connections for a work
+     */
+    private int countWorkConnections(int workId) {
+        return (int) allConnections.stream()
+            .filter(c -> c.getWorkId() == workId)
+            .count();
+    }
+    
+    /**
      * Refresh the connection table data
      */
     private void refreshConnectionTable() {
         List<Connection> connections = databaseService.getAllConnectionsWithDetails();
         ObservableList<Connection> data = FXCollections.observableArrayList(connections);
         connectionTable.setItems(data);
+        
+        // Update the filtered data list too
+        allConnections = FXCollections.observableArrayList(connections);
+        if (filteredData != null) {
+            filteredData = new FilteredList<>(allConnections, p -> true);
+            filteredConnectionTable.setItems(filteredData);
+        }
     }
     
     /**
@@ -299,15 +551,98 @@ public class DatabaseController implements Initializable {
         String workTitleFilter = workFilterField.getText().trim();
         String creatorNameFilter = creatorFilterField.getText().trim();
         ConnectionType connectionTypeFilter = connectionTypeComboBox.getValue();
+        boolean exactMatch = exactMatchCheckBox.isSelected();
         
-        List<Connection> filteredConnections = databaseService.getFilteredConnections(
-                workTitleFilter.isEmpty() ? null : workTitleFilter,
-                creatorNameFilter.isEmpty() ? null : creatorNameFilter,
-                connectionTypeFilter
-        );
+        // Get year range
+        int minYear = (int) minYearSlider.getValue();
+        int maxYear = (int) maxYearSlider.getValue();
         
-        ObservableList<Connection> data = FXCollections.observableArrayList(filteredConnections);
-        filteredConnectionTable.setItems(data);
+        // Get connection types to include
+        List<ConnectionType> typesToInclude = new ArrayList<>();
+        if (musicCheckBox.isSelected()) typesToInclude.add(ConnectionType.MUSIC);
+        if (librettoCheckBox.isSelected()) typesToInclude.add(ConnectionType.LIBRETTO);
+        if (translationCheckBox.isSelected()) typesToInclude.add(ConnectionType.TRANSLATION);
+        
+        // Get creator and role filter
+        Creator selectedCreator = creatorComboBox.getValue();
+        String creatorRole = creatorRoleChoice.getValue();
+        
+        // Set predicate for filtering
+        filteredData.setPredicate(connection -> {
+            // Check work title
+            if (workTitleFilter != null && !workTitleFilter.isEmpty()) {
+                if (exactMatch) {
+                    if (!connection.getWorkTitle().equals(workTitleFilter)) {
+                        return false;
+                    }
+                } else {
+                    if (!connection.getWorkTitle().toLowerCase().contains(workTitleFilter.toLowerCase())) {
+                        return false;
+                    }
+                }
+            }
+            
+            // Check creator name
+            if (creatorNameFilter != null && !creatorNameFilter.isEmpty()) {
+                if (exactMatch) {
+                    if (!connection.getCreatorName().equals(creatorNameFilter)) {
+                        return false;
+                    }
+                } else {
+                    if (!connection.getCreatorName().toLowerCase().contains(creatorNameFilter.toLowerCase())) {
+                        return false;
+                    }
+                }
+            }
+            
+            // Check connection type
+            if (connectionTypeFilter != null) {
+                if (connection.getConnectionType() != connectionTypeFilter) {
+                    return false;
+                }
+            }
+            
+            // Check connection types to include
+            if (!typesToInclude.contains(connection.getConnectionType())) {
+                return false;
+            }
+            
+            // Check year range (need to get the work details)
+            Optional<Work> work = databaseService.getWorkById(connection.getWorkId());
+            if (work.isPresent()) {
+                Integer premiereYear = work.get().getPremiereYear();
+                if (premiereYear != null) {
+                    if (premiereYear < minYear || premiereYear > maxYear) {
+                        return false;
+                    }
+                }
+            }
+            
+            // Check specific creator and role
+            if (selectedCreator != null) {
+                if (connection.getCreatorId() != selectedCreator.getId()) {
+                    return false;
+                }
+                
+                // Check role if specified
+                if (!"Any Role".equals(creatorRole)) {
+                    ConnectionType requiredType = null;
+                    if ("Composer".equals(creatorRole)) {
+                        requiredType = ConnectionType.MUSIC;
+                    } else if ("Librettist".equals(creatorRole)) {
+                        requiredType = ConnectionType.LIBRETTO;
+                    } else if ("Translator".equals(creatorRole)) {
+                        requiredType = ConnectionType.TRANSLATION;
+                    }
+                    
+                    if (requiredType != null && connection.getConnectionType() != requiredType) {
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
+        });
     }
     
     /**
@@ -338,6 +673,8 @@ public class DatabaseController implements Initializable {
             // Validate required fields
             if (title.isEmpty()) {
                 addWorkStatusLabel.setText("Error: Title is required");
+                addWorkStatusLabel.getStyleClass().remove("status-label-success");
+                addWorkStatusLabel.getStyleClass().add("status-label-error");
                 return;
             }
             
@@ -348,6 +685,8 @@ public class DatabaseController implements Initializable {
             
             if (success) {
                 addWorkStatusLabel.setText("Work added successfully");
+                addWorkStatusLabel.getStyleClass().remove("status-label-error");
+                addWorkStatusLabel.getStyleClass().add("status-label-success");
                 
                 // Clear form fields
                 newWorkIdField.setText(String.valueOf(databaseService.getNextWorkId()));
@@ -363,11 +702,17 @@ public class DatabaseController implements Initializable {
                 refreshDeleteWorkComboBox();
             } else {
                 addWorkStatusLabel.setText("Error adding work");
+                addWorkStatusLabel.getStyleClass().remove("status-label-success");
+                addWorkStatusLabel.getStyleClass().add("status-label-error");
             }
         } catch (NumberFormatException e) {
             addWorkStatusLabel.setText("Error: Invalid number format");
+            addWorkStatusLabel.getStyleClass().remove("status-label-success");
+            addWorkStatusLabel.getStyleClass().add("status-label-error");
         } catch (Exception e) {
             addWorkStatusLabel.setText("Error: " + e.getMessage());
+            addWorkStatusLabel.getStyleClass().remove("status-label-success");
+            addWorkStatusLabel.getStyleClass().add("status-label-error");
         }
     }
     
@@ -379,6 +724,8 @@ public class DatabaseController implements Initializable {
         
         if (selectedWork == null) {
             updateWorkStatusLabel.setText("Error: No work selected");
+            updateWorkStatusLabel.getStyleClass().remove("status-label-success");
+            updateWorkStatusLabel.getStyleClass().add("status-label-error");
             return;
         }
         
@@ -405,6 +752,8 @@ public class DatabaseController implements Initializable {
             // Validate required fields
             if (title.isEmpty()) {
                 updateWorkStatusLabel.setText("Error: Title is required");
+                updateWorkStatusLabel.getStyleClass().remove("status-label-success");
+                updateWorkStatusLabel.getStyleClass().add("status-label-error");
                 return;
             }
             
@@ -420,17 +769,26 @@ public class DatabaseController implements Initializable {
             
             if (success) {
                 updateWorkStatusLabel.setText("Work updated successfully");
+                updateWorkStatusLabel.getStyleClass().remove("status-label-error");
+                updateWorkStatusLabel.getStyleClass().add("status-label-success");
                 
-                // Refresh work combo boxes
+                // Refresh work combo boxes and connection tables
                 refreshWorkComboBox();
                 refreshDeleteWorkComboBox();
+                refreshConnectionTable();
             } else {
                 updateWorkStatusLabel.setText("Error updating work");
+                updateWorkStatusLabel.getStyleClass().remove("status-label-success");
+                updateWorkStatusLabel.getStyleClass().add("status-label-error");
             }
         } catch (NumberFormatException e) {
             updateWorkStatusLabel.setText("Error: Invalid number format");
+            updateWorkStatusLabel.getStyleClass().remove("status-label-success");
+            updateWorkStatusLabel.getStyleClass().add("status-label-error");
         } catch (Exception e) {
             updateWorkStatusLabel.setText("Error: " + e.getMessage());
+            updateWorkStatusLabel.getStyleClass().remove("status-label-success");
+            updateWorkStatusLabel.getStyleClass().add("status-label-error");
         }
     }
     
@@ -442,14 +800,26 @@ public class DatabaseController implements Initializable {
         
         if (selectedWork == null) {
             deleteWorkStatusLabel.setText("Error: No work selected");
+            deleteWorkStatusLabel.setTextFill(Color.RED);
             return;
+        }
+        
+        // Count connections
+        int connectionCount = countWorkConnections(selectedWork.getId());
+        String confirmMessage = "Are you sure you want to delete the work '" + selectedWork.getTitle() + "'?";
+        if (connectionCount > 0) {
+            confirmMessage += "\nThis will also delete " + connectionCount + 
+                " connection" + (connectionCount > 1 ? "s" : "") + ".";
         }
         
         Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
         confirmAlert.setTitle("Confirm Delete");
         confirmAlert.setHeaderText("Delete Work");
-        confirmAlert.setContentText("Are you sure you want to delete the work '" + 
-                                   selectedWork.getTitle() + "'?");
+        confirmAlert.setContentText(confirmMessage);
+        
+        // Style the buttons
+        DialogPane dialogPane = confirmAlert.getDialogPane();
+        dialogPane.getStylesheets().add(getClass().getResource("/css/style.css").toExternalForm());
         
         Optional<ButtonType> result = confirmAlert.showAndWait();
         
@@ -458,16 +828,19 @@ public class DatabaseController implements Initializable {
             
             if (success) {
                 deleteWorkStatusLabel.setText("Work deleted successfully");
+                deleteWorkStatusLabel.setTextFill(Color.GREEN);
                 
-                // Refresh work combo boxes
+                // Refresh work combo boxes and connection tables
                 refreshWorkComboBox();
                 refreshDeleteWorkComboBox();
+                refreshConnectionTable();
                 
                 // Hide work details
                 workDetailsBox.setVisible(false);
                 deleteWorkComboBox.setValue(null);
             } else {
                 deleteWorkStatusLabel.setText("Error deleting work");
+                deleteWorkStatusLabel.setTextFill(Color.RED);
             }
         }
     }
@@ -479,6 +852,36 @@ public class DatabaseController implements Initializable {
         List<Work> works = databaseService.getAllWorks();
         ObservableList<Work> data = FXCollections.observableArrayList(works);
         workSelectComboBox.setItems(data);
+        
+        // Set cell factory for better display
+        workSelectComboBox.setCellFactory(new Callback<ListView<Work>, ListCell<Work>>() {
+            @Override
+            public ListCell<Work> call(ListView<Work> param) {
+                return new ListCell<Work>() {
+                    @Override
+                    protected void updateItem(Work item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else {
+                            setText(item.getId() + " - " + item.getTitle());
+                        }
+                    }
+                };
+            }
+        });
+        
+        workSelectComboBox.setButtonCell(new ListCell<Work>() {
+            @Override
+            protected void updateItem(Work item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("Select a work");
+                } else {
+                    setText(item.getId() + " - " + item.getTitle());
+                }
+            }
+        });
     }
     
     /**
@@ -488,5 +891,35 @@ public class DatabaseController implements Initializable {
         List<Work> works = databaseService.getAllWorks();
         ObservableList<Work> data = FXCollections.observableArrayList(works);
         deleteWorkComboBox.setItems(data);
+        
+        // Set cell factory for better display
+        deleteWorkComboBox.setCellFactory(new Callback<ListView<Work>, ListCell<Work>>() {
+            @Override
+            public ListCell<Work> call(ListView<Work> param) {
+                return new ListCell<Work>() {
+                    @Override
+                    protected void updateItem(Work item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else {
+                            setText(item.getId() + " - " + item.getTitle());
+                        }
+                    }
+                };
+            }
+        });
+        
+        deleteWorkComboBox.setButtonCell(new ListCell<Work>() {
+            @Override
+            protected void updateItem(Work item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText("Select a work to delete");
+                } else {
+                    setText(item.getId() + " - " + item.getTitle());
+                }
+            }
+        });
     }
 }
