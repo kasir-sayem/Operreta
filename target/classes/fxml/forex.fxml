@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
+<?import javafx.scene.chart.CategoryAxis?>
+
+<BorderPane fx:id="forexPane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.operetta.controller.ForexController">
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+    </padding>
+    
+    <center>
+        <StackPane>
+            <!-- Account Information View -->
+            <VBox fx:id="accountInfoView" spacing="10" visible="false">
+                <Label text="Account Information" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+                <TableView fx:id="accountInfoTable">
+                    <columns>
+                        <TableColumn fx:id="propertyColumn" text="Property" prefWidth="200" />
+                        <TableColumn fx:id="valueColumn" text="Value" prefWidth="300" />
+                    </columns>
+                </TableView>
+                <Button text="Refresh" onAction="#refreshAccountInfo" />
+            </VBox>
+            
+            <!-- Current Prices View -->
+            <VBox fx:id="currentPricesView" spacing="10" visible="false">
+                <Label text="Current Prices" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Currency Pair:" />
+                    <ComboBox fx:id="currencyPairCombo" prefWidth="150" />
+                    <Button text="Get Price" onAction="#getCurrentPrice" />
+                </HBox>
+                <TextArea fx:id="priceResultArea" editable="false" prefHeight="200" wrapText="true" />
+            </VBox>
+            
+            <!-- Historical Prices View -->
+            <VBox fx:id="historicalPricesView" spacing="10" visible="false">
+                <Label text="Historical Prices" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Currency Pair:" />
+                    <ComboBox fx:id="histCurrencyPairCombo" prefWidth="150" />
+                </HBox>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Start Date:" />
+                    <DatePicker fx:id="startDatePicker" />
+                    <Label text="End Date:" />
+                    <DatePicker fx:id="endDatePicker" />
+                    <Button text="Get Data" onAction="#getHistoricalPrices" />
+                </HBox>
+                <TabPane prefHeight="300">
+                    <Tab text="Table">
+                        <TableView fx:id="historicalPricesTable" prefHeight="250">
+                            <columns>
+                                <TableColumn fx:id="dateColumn" text="Date" prefWidth="150" />
+                                <TableColumn fx:id="openColumn" text="Open" prefWidth="100" />
+                                <TableColumn fx:id="highColumn" text="High" prefWidth="100" />
+                                <TableColumn fx:id="lowColumn" text="Low" prefWidth="100" />
+                                <TableColumn fx:id="closeColumn" text="Close" prefWidth="100" />
+                            </columns>
+                        </TableView>
+                    </Tab>
+                    <Tab text="Chart">
+                        <LineChart fx:id="priceChart" prefHeight="250">
+                            <xAxis>
+                                <CategoryAxis label="Date" fx:id="xAxis" />
+                            </xAxis>
+                            <yAxis>
+                                <NumberAxis label="Price" fx:id="yAxis" />
+                            </yAxis>
+                        </LineChart>
+                    </Tab>
+                </TabPane>
+            </VBox>
+            
+            <!-- Position Opening View -->
+            <VBox fx:id="positionOpeningView" spacing="10" visible="false">
+                <Label text="Position Opening" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Currency Pair:" />
+                    <ComboBox fx:id="openPositionCurrencyCombo" prefWidth="150" />
+                </HBox>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Quantity:" />
+                    <TextField fx:id="quantityField" prefWidth="100" promptText="e.g. 10" />
+                </HBox>
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Direction:" />
+                    <RadioButton fx:id="buyRadioButton" text="Buy (Long)" selected="true">
+                        <toggleGroup>
+                            <ToggleGroup fx:id="directionGroup" />
+                        </toggleGroup>
+                    </RadioButton>
+                    <RadioButton fx:id="sellRadioButton" text="Sell (Short)" toggleGroup="$directionGroup" />
+                </HBox>
+                <Button text="Open Position" onAction="#openPosition" />
+                <TextArea fx:id="openPositionResultArea" editable="false" prefHeight="100" wrapText="true" />
+            </VBox>
+            
+            <!-- Position Closing View -->
+            <VBox fx:id="positionClosingView" spacing="10" visible="false">
+                <Label text="Position Closing" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Position ID:" />
+                    <TextField fx:id="positionIdField" prefWidth="150" promptText="Enter position ID" />
+                    <Button text="Close Position" onAction="#closePosition" />
+                </HBox>
+                <TextArea fx:id="closePositionResultArea" editable="false" prefHeight="100" wrapText="true" />
+            </VBox>
+            
+            <!-- Opened Positions View -->
+            <VBox fx:id="openedPositionsView" spacing="10" visible="false">
+                <Label text="Opened Positions" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+                <TableView fx:id="openPositionsTable">
+                    <columns>
+                        <TableColumn fx:id="positionIdColumn" text="ID" prefWidth="50" />
+                        <TableColumn fx:id="instrumentColumn" text="Instrument" prefWidth="100" />
+                        <TableColumn fx:id="unitsColumn" text="Units" prefWidth="80" />
+                        <TableColumn fx:id="priceColumn" text="Price" prefWidth="100" />
+                        <TableColumn fx:id="profitColumn" text="Profit/Loss" prefWidth="100" />
+                        <TableColumn fx:id="openTimeColumn" text="Open Time" prefWidth="150" />
+                    </columns>
+                </TableView>
+                <Button text="Refresh" onAction="#refreshOpenPositions" />
+            </VBox>
+            
+            <!-- Default View -->
+            <VBox fx:id="defaultView" alignment="CENTER" spacing="20">
+                <Label text="Forex Trading" style="-fx-font-size: 24px; -fx-font-weight: bold;" />
+                <Label text="Select a submenu option from the Forex menu to begin." style="-fx-font-size: 14px;" />
+            </VBox>
+        </StackPane>
+    </center>
+</BorderPane>
