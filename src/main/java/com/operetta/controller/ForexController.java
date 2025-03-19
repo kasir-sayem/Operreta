@@ -13,6 +13,9 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
+import java.io.StringWriter;  // Added for StringWriter
+import java.io.PrintWriter;   // Added for PrintWriter
+import javafx.scene.layout.GridPane;  // Added for GridPane
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;

@@ -22,6 +22,8 @@ import com.operetta.controller.ForexController.CandleData;
 import com.operetta.controller.ForexController.PositionData;
 import com.operetta.util.Config;
 
+import java.io.StringWriter;
+import java.io.PrintWriter;
 import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -41,9 +43,8 @@ public class ForexService {
                 .setApplication("OperettaForexApp")
                 .build();
         
-        accountId = Config.ACCOUNT_ID;
+        accountId = Config.ACCOUNTID;
     }
-}
     
     /**
      * Get account information and return it as a map
@@ -59,11 +60,14 @@ public class ForexService {
         accountInfo.put("Account ID", summary.getId().toString());
         accountInfo.put("Name", summary.getAlias());
         accountInfo.put("Currency", summary.getCurrency().toString());
-        accountInfo.put("Balance", formatNumber(summary.getBalance()));
-        accountInfo.put("Unrealized P/L", formatNumber(summary.getUnrealizedPL()));
-        accountInfo.put("Realized P/L", formatNumber(summary.getPL()));
-        accountInfo.put("Margin Used", formatNumber(summary.getMarginUsed()));
-        accountInfo.put("Margin Available", formatNumber(summary.getMarginAvailable()));
+        accountInfo.put("Balance", summary.getBalance().toString());
+        accountInfo.put("Unrealized P/L", summary.getUnrealizedPL().toString());
+
+        
+    
+
+        accountInfo.put("Margin Used", summary.getMarginUsed().toString());
+        accountInfo.put("Margin Available", summary.getMarginAvailable().toString());
         accountInfo.put("Open Trade Count", String.valueOf(summary.getOpenTradeCount()));
         accountInfo.put("Open Position Count", String.valueOf(summary.getOpenPositionCount()));
         accountInfo.put("Created Time", formatDateTime(summary.getCreatedTime().toString()));
@@ -95,13 +99,15 @@ public class ForexService {
         result.append("Time: ").append(formatDateTime(price.getTime().toString())).append("\n");
         
         // Bid prices (best available)
-        result.append("Bid Price: ").append(formatNumber(price.getCloseoutBid())).append("\n");
+        result.append("Bid Price: ").append(price.getCloseoutBid().toString()).append("\n");
         
         // Ask prices (best available)
-        result.append("Ask Price: ").append(formatNumber(price.getCloseoutAsk())).append("\n");
+        result.append("Ask Price: ").append(price.getCloseoutAsk().toString()).append("\n");
         
-        // Spread
-        double spread = price.getCloseoutAsk() - price.getCloseoutBid();
+        // Spread - calculate using string representation
+        double bidValue = Double.parseDouble(price.getCloseoutBid().toString());
+        double askValue = Double.parseDouble(price.getCloseoutAsk().toString());
+        double spread = askValue - bidValue;
         result.append("Spread: ").append(formatNumber(spread));
         
         return result.toString();
@@ -143,13 +149,19 @@ public class ForexService {
             );
             String formattedDate = dateTime.format(dateFormatter);
             
+            // Convert PriceValue objects to double
+            double openValue = Double.parseDouble(candle.getMid().getO().toString());
+            double highValue = Double.parseDouble(candle.getMid().getH().toString());
+            double lowValue = Double.parseDouble(candle.getMid().getL().toString());
+            double closeValue = Double.parseDouble(candle.getMid().getC().toString());
+            
             // Add to result list
             result.add(new CandleData(
                     formattedDate,
-                    candle.getMid().getO(),
-                    candle.getMid().getH(),
-                    candle.getMid().getL(),
-                    candle.getMid().getC()
+                    openValue,
+                    highValue,
+                    lowValue,
+                    closeValue
             ));
         }
         
@@ -178,7 +190,7 @@ public class ForexService {
         result.append("Trade ID: ").append(response.getOrderFillTransaction().getId()).append("\n");
         result.append("Instrument: ").append(instrument).append("\n");
         result.append("Units: ").append(units).append("\n");
-        result.append("Price: ").append(formatNumber(response.getOrderFillTransaction().getPrice())).append("\n");
+        result.append("Price: ").append(response.getOrderFillTransaction().getPrice().toString()).append("\n");
         result.append("Time: ").append(formatDateTime(response.getOrderFillTransaction().getTime().toString()));
         
         return result.toString();
@@ -207,12 +219,17 @@ public class ForexService {
         List<PositionData> result = new ArrayList<>();
         
         for (Trade trade : trades) {
+            // Convert custom types to primitive types
+            double units = Double.parseDouble(trade.getCurrentUnits().toString());
+            double price = Double.parseDouble(trade.getPrice().toString());
+            double profit = Double.parseDouble(trade.getUnrealizedPL().toString());
+            
             result.add(new PositionData(
-                    trade.getId(),
+                    trade.getId().toString(),
                     trade.getInstrument().toString(),
-                    trade.getCurrentUnits(),
-                    trade.getPrice(),
-                    trade.getUnrealizedPL(),
+                    units,
+                    price,
+                    profit,
                     formatDateTime(trade.getOpenTime().toString())
             ));
         }
@@ -245,3 +262,4 @@ public class ForexService {
             return isoDateTime;
         }
     }
+}
