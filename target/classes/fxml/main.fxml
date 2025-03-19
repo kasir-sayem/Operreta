@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane fx:id="mainPane" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.operetta.controller.MainController">
+    <top>
+        <MenuBar>
+            <menus>
+                <Menu text="Database">
+                    <items>
+                        <MenuItem text="Read" onAction="#loadDatabaseView" />
+                        <MenuItem text="Read2" onAction="#loadDatabaseView" />
+                        <MenuItem text="Write" onAction="#loadDatabaseView" />
+                        <MenuItem text="Change" onAction="#loadDatabaseView" />
+                        <MenuItem text="Delete" onAction="#loadDatabaseView" />
+                    </items>
+                </Menu>
+                <Menu text="SOAP Client">
+                    <items>
+                        <MenuItem text="Download" onAction="#loadSoapView" />
+                        <MenuItem text="Download2" onAction="#loadSoapView" />
+                        <MenuItem text="Graph" onAction="#loadSoapView" />
+                    </items>
+                </Menu>
+                <Menu text="Parallel">
+                    <items>
+                        <MenuItem text="Demo" onAction="#loadParallelView" />
+                    </items>
+                </Menu>
+                <Menu text="Forex">
+                    <items>
+                        <MenuItem text="Account Information" onAction="#loadForexView" />
+                        <MenuItem text="Current Prices" onAction="#loadForexView" />
+                        <MenuItem text="Historical Prices" onAction="#loadForexView" />
+                        <MenuItem text="Position Opening" onAction="#loadForexView" />
+                        <MenuItem text="Position Closing" onAction="#loadForexView" />
+                        <MenuItem text="Opened Positions" onAction="#loadForexView" />
+                    </items>
+                </Menu>
+            </menus>
+        </MenuBar>
+    </top>
+    <center>
+        <VBox alignment="CENTER">
+            <Label text="Operetta Database Application" style="-fx-font-size: 24px;" />
+            <Label text="Select a menu item to begin" style="-fx-font-size: 16px;" />
+        </VBox>
+    </center>
+</BorderPane>

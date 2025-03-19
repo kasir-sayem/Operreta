@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox spacing="20" alignment="CENTER" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="com.operetta.controller.ParallelController">
+    
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20" />
+    </padding>
+    
+    <Label text="Parallel Programming Demonstration" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+    
+    <VBox spacing="10" style="-fx-border-color: #cccccc; -fx-border-radius: 5; -fx-padding: 15;">
+        <Label text="This demonstration shows two threads running in parallel:" />
+        <Label text="- Thread 1 updates every 1 second" />
+        <Label text="- Thread 2 updates every 2 seconds" />
+    </VBox>
+    
+    <Button fx:id="startButton" text="Start" onAction="#toggleThreads" 
+            style="-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;" 
+            prefWidth="150" />
+    
+    <VBox spacing="10" style="-fx-border-color: #cccccc; -fx-border-radius: 5; -fx-padding: 15;">
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label fx:id="label1" text="Thread 1 (1 second)" minWidth="200" />
+            <ProgressBar fx:id="progressBar1" progress="0" prefWidth="300" />
+        </HBox>
+        
+        <HBox spacing="10" alignment="CENTER_LEFT">
+            <Label fx:id="label2" text="Thread 2 (2 seconds)" minWidth="200" />
+            <ProgressBar fx:id="progressBar2" progress="0" prefWidth="300" />
+        </HBox>
+    </VBox>
+    
+    <Label text="Each thread runs independently of the other, demonstrating parallel execution." />
+</VBox>

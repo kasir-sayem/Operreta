@@ -1,4 +1,4 @@
-package main.java.com.operetta;
+package com.operetta;
 
 import java.io.File;
 import java.io.IOException;
