@@ -12,11 +12,11 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.GridPane;
 import javafx.util.StringConverter;
-import java.io.StringWriter;  // Added for StringWriter
-import java.io.PrintWriter;   // Added for PrintWriter
-import javafx.scene.layout.GridPane;  // Added for GridPane
 
+import java.io.StringWriter;
+import java.io.PrintWriter;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -277,6 +277,11 @@ public class ForexController {
                     endDate.format(DateTimeFormatter.ISO_DATE)
             );
             
+            if (candles.isEmpty()) {
+                showAlert("Information", "No historical data found for the selected period");
+                return;
+            }
+            
             // Update table
             historicalPricesTable.setItems(FXCollections.observableArrayList(candles));
             
@@ -284,7 +289,8 @@ public class ForexController {
             updatePriceChart(candles);
             
         } catch (Exception e) {
-            showError("Failed to get historical prices", e);
+            // Use a simpler error message to avoid reflection issues
+            showAlert("Error", "Failed to get historical prices: " + e.getMessage());
         }
     }
     
@@ -366,7 +372,27 @@ public class ForexController {
         }
     }
     
-    // Utility methods for displaying alerts
+    // // Utility methods for displaying alerts
+    // private void showAlert(String title, String content) {
+    //     Alert alert = new Alert(Alert.AlertType.WARNING);
+    //     alert.setTitle(title);
+    //     alert.setHeaderText(null);
+    //     alert.setContentText(content);
+    //     alert.showAndWait();
+    // }
+
+    private void showError(String message, Exception e) {
+        // Simple version without using reflection
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Error");
+        alert.setHeaderText(message);
+        
+        // Just show the message without trying to access the exception details
+        alert.setContentText(e.getMessage() != null ? e.getMessage() : "An unknown error occurred");
+        
+        alert.showAndWait();
+    }
+    
     private void showAlert(String title, String content) {
         Alert alert = new Alert(Alert.AlertType.WARNING);
         alert.setTitle(title);
@@ -375,34 +401,40 @@ public class ForexController {
         alert.showAndWait();
     }
     
-    private void showError(String message, Exception e) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Error");
-        alert.setHeaderText(message);
-        alert.setContentText(e.getMessage());
+    // private void showError(String message, Exception e) {
+    //     Alert alert = new Alert(Alert.AlertType.ERROR);
+    //     alert.setTitle("Error");
+    //     alert.setHeaderText(message);
         
-        // Create expandable Exception.
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
-        String exceptionText = sw.toString();
-
-        Label label = new Label("Exception stacktrace:");
-
-        TextArea textArea = new TextArea(exceptionText);
-        textArea.setEditable(false);
-        textArea.setWrapText(true);
-        textArea.setMaxWidth(Double.MAX_VALUE);
-        textArea.setMaxHeight(Double.MAX_VALUE);
-
-        GridPane expContent = new GridPane();
-        expContent.setMaxWidth(Double.MAX_VALUE);
-        expContent.add(label, 0, 0);
-        expContent.add(textArea, 0, 1);
-
-        alert.getDialogPane().setExpandableContent(expContent);
-        alert.showAndWait();
-    }
+    //     // Simplified error content that avoids reflection
+    //     String errorContent = e.getMessage();
+    //     if (errorContent == null || errorContent.isEmpty()) {
+    //         errorContent = e.getClass().getName();
+    //     }
+    //     alert.setContentText(errorContent);
+        
+    //     // Simple text area for stack trace without expandable content
+    //     StringBuilder stackTrace = new StringBuilder();
+    //     for (StackTraceElement element : e.getStackTrace()) {
+    //         stackTrace.append(element.toString()).append("\n");
+    //         // Limit stack trace to avoid overwhelming the dialog
+    //         if (stackTrace.length() > 500) {
+    //             stackTrace.append("...");
+    //             break;
+    //         }
+    //     }
+        
+    //     TextArea textArea = new TextArea(stackTrace.toString());
+    //     textArea.setEditable(false);
+    //     textArea.setWrapText(true);
+    //     textArea.setMaxWidth(Double.MAX_VALUE);
+    //     textArea.setMaxHeight(200);
+        
+    //     alert.getDialogPane().setExpandableContent(textArea);
+    //     alert.getDialogPane().setExpanded(false);
+        
+    //     alert.showAndWait();
+    // }
     
     // Data model classes
     public static class AccountProperty {

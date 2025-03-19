@@ -62,10 +62,7 @@ public class ForexService {
         accountInfo.put("Currency", summary.getCurrency().toString());
         accountInfo.put("Balance", summary.getBalance().toString());
         accountInfo.put("Unrealized P/L", summary.getUnrealizedPL().toString());
-
-        
-    
-
+        // Realized P/L not available in this API version
         accountInfo.put("Margin Used", summary.getMarginUsed().toString());
         accountInfo.put("Margin Available", summary.getMarginAvailable().toString());
         accountInfo.put("Open Trade Count", String.valueOf(summary.getOpenTradeCount()));
@@ -114,6 +111,9 @@ public class ForexService {
     }
     
     /**
+     * 
+     * 
+     * /**
      * Get historical prices for a specific instrument
      * @param instrument the currency pair (e.g., "EUR_USD")
      * @param from start date in ISO format (yyyy-MM-dd)
@@ -122,50 +122,69 @@ public class ForexService {
      * @throws Exception if API call fails
      */
     public List<CandleData> getHistoricalPrices(String instrument, String from, String to) throws Exception {
-        InstrumentCandlesRequest request = new InstrumentCandlesRequest(new InstrumentName(instrument));
-        
-        // Set granularity to hourly (H1)
-        request.setGranularity(CandlestickGranularity.H1);
-        
-        // Convert dates to proper format and set time bounds
-        LocalDate fromDate = LocalDate.parse(from);
-        LocalDate toDate = LocalDate.parse(to);
-        
-        request.setFrom(fromDate.atStartOfDay().toString() + "Z");
-        request.setTo(toDate.plusDays(1).atStartOfDay().toString() + "Z");
-        
-        InstrumentCandlesResponse response = context.instrument.candles(request);
-        List<Candlestick> candles = response.getCandles();
-        
         List<CandleData> result = new ArrayList<>();
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         
-        for (Candlestick candle : candles) {
-            // Parse the timestamp
-            String timestamp = candle.getTime().toString();
-            LocalDateTime dateTime = LocalDateTime.ofInstant(
-                    Instant.parse(timestamp), 
-                    ZoneId.systemDefault()
-            );
-            String formattedDate = dateTime.format(dateFormatter);
+        try {
+            System.out.println("Requesting historical data for " + instrument + " from " + from + " to " + to);
             
-            // Convert PriceValue objects to double
-            double openValue = Double.parseDouble(candle.getMid().getO().toString());
-            double highValue = Double.parseDouble(candle.getMid().getH().toString());
-            double lowValue = Double.parseDouble(candle.getMid().getL().toString());
-            double closeValue = Double.parseDouble(candle.getMid().getC().toString());
+            InstrumentCandlesRequest request = new InstrumentCandlesRequest(new InstrumentName(instrument));
             
-            // Add to result list
-            result.add(new CandleData(
-                    formattedDate,
-                    openValue,
-                    highValue,
-                    lowValue,
-                    closeValue
-            ));
+            // Set granularity to hourly (H1)
+            request.setGranularity(CandlestickGranularity.H1);
+            
+            // Convert dates to proper format and set time bounds
+            LocalDate fromDate = LocalDate.parse(from);
+            LocalDate toDate = LocalDate.parse(to);
+            
+            request.setFrom(fromDate.atStartOfDay().toString() + "Z");
+            request.setTo(toDate.plusDays(1).atStartOfDay().toString() + "Z");
+            
+            System.out.println("Making API request for candles...");
+            InstrumentCandlesResponse response = context.instrument.candles(request);
+            List<Candlestick> candles = response.getCandles();
+            
+            System.out.println("Received " + candles.size() + " candles from API");
+            
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            
+            for (Candlestick candle : candles) {
+                try {
+                    // Parse the timestamp
+                    String timestamp = candle.getTime().toString();
+                    LocalDateTime dateTime = LocalDateTime.ofInstant(
+                            Instant.parse(timestamp), 
+                            ZoneId.systemDefault()
+                    );
+                    String formattedDate = dateTime.format(dateFormatter);
+                    
+                    // Convert PriceValue objects to double
+                    double openValue = Double.parseDouble(candle.getMid().getO().toString());
+                    double highValue = Double.parseDouble(candle.getMid().getH().toString());
+                    double lowValue = Double.parseDouble(candle.getMid().getL().toString());
+                    double closeValue = Double.parseDouble(candle.getMid().getC().toString());
+                    
+                    // Add to result list
+                    result.add(new CandleData(
+                            formattedDate,
+                            openValue,
+                            highValue,
+                            lowValue,
+                            closeValue
+                    ));
+                } catch (Exception e) {
+                    // Skip this candle if there's an error processing it
+                    System.err.println("Error processing a candle: " + e.getClass().getName());
+                }
+            }
+            
+            return result;
+            
+        } catch (Exception e) {
+            // Create a custom exception with a simpler message to avoid reflection issues
+            System.err.println("Error in historical prices: " + e.getClass().getName());
+            // Don't rethrow the original exception - create a new one
+            throw new Exception("Could not retrieve historical prices. Please try again later.");
         }
-        
-        return result;
     }
     
     /**
