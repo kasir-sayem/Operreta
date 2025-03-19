@@ -1,6 +1,7 @@
 package com.operetta.model;
 import com.operetta.model.ConnectionType;
 
+
 /**
  * Enum representing the three types of connections in the database
  */
