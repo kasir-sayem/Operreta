@@ -10,7 +10,7 @@ import java.sql.Statement;
  * Utility class for database operations
  */
 public class DatabaseUtil {
-    private static final String DB_URL = "jdbc:sqlite:c:/data/operetta.db";
+    private static final String DB_URL = "jdbc:sqlite:operetta.db";
     
     /**
      * Get a connection to the database
@@ -23,7 +23,7 @@ public class DatabaseUtil {
      * Initialize the database tables if they don't exist
      */
     public static void initializeDatabase() {
-        File dbFile = new File("c:/data/operetta.db");
+        File dbFile = new File("operetta.db");
         boolean databaseExists = dbFile.exists();
         
         try (Connection conn = getConnection();

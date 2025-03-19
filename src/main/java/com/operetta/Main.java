@@ -3,6 +3,9 @@ package com.operetta;
 import java.io.File;
 import java.io.IOException;
 
+import com.operetta.util.DataImporter;
+import com.operetta.util.DatabaseUtil;
+
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -36,6 +39,7 @@ public class Main extends Application {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        
     }
 
     public static void main(String[] args) {

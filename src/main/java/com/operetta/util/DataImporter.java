@@ -55,8 +55,8 @@ public class DataImporter {
      * Import works data from works.txt
      */
     private static void importWorks() {
-        String filePath = "c:/data/works.txt";
-        ensureFileExists(filePath, "/data/works.txt");
+        String filePath = "data/works.txt";
+        ensureFileExists(filePath, "works.txt");
         
         try (Connection conn = DatabaseUtil.getConnection();
              BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -159,8 +159,8 @@ public class DataImporter {
      * Import creators data from creators.txt
      */
     private static void importCreators() {
-        String filePath = "c:/data/creators.txt";
-        ensureFileExists(filePath, "/data/creators.txt");
+        String filePath = "data/creators.txt";
+        ensureFileExists(filePath, "creators.txt");
         
         try (Connection conn = DatabaseUtil.getConnection();
              BufferedReader reader = new BufferedReader(new InputStreamReader(
@@ -214,8 +214,8 @@ public class DataImporter {
      * Import connections data from connections.txt
      */
     private static void importConnections() {
-        String filePath = "c:/data/connections.txt";
-        ensureFileExists(filePath, "/data/connections.txt");
+        String filePath = "data/connections.txt";
+        ensureFileExists(filePath, "connections.txt");
         
         try (Connection conn = DatabaseUtil.getConnection();
              BufferedReader reader = new BufferedReader(new InputStreamReader(
