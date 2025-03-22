@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+
+<VBox spacing="10" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+      fx:controller="com.operetta.controller.DatabaseController" stylesheets="/css/style.css">
+    
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20" />
+    </padding>
+    
+    <Label text="Operetta Database" style="-fx-font-size: 24px; -fx-font-weight: bold;" />
+    
+    <TabPane fx:id="tabPane" tabClosingPolicy="UNAVAILABLE">
+        <!-- Read Tab - Display All Connections -->
+        <Tab fx:id="readTab" text="Read">
+            <VBox spacing="10">
+                <padding>
+                    <Insets top="20" right="20" bottom="20" left="20" />
+                </padding>
+                <Label text="All Operetta Connections" styleClass="section-header" />
+                <TableView fx:id="connectionTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="idColumn" text="ID" prefWidth="50" />
+                        <TableColumn fx:id="workColumn" text="Work" prefWidth="250" />
+                        <TableColumn fx:id="connectionTypeColumn" text="Connection Type" prefWidth="150" />
+                        <TableColumn fx:id="creatorColumn" text="Creator" prefWidth="250" />
+                    </columns>
+                </TableView>
+            </VBox>
+        </Tab>
+        
+        <!-- Read2 Tab - Filtered View -->
+        <Tab fx:id="read2Tab" text="Read2">
+            <VBox spacing="10">
+                <padding>
+                    <Insets top="20" right="20" bottom="20" left="20" />
+                </padding>
+                <Label text="Filtered Operetta Connections" styleClass="section-header" />
+                
+                <TitledPane text="Filter Options" collapsible="true" expanded="true" styleClass="filter-panel">
+                    <VBox spacing="15">
+                        <GridPane hgap="10" vgap="10">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="120" prefWidth="150" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                            </columnConstraints>
+                            
+                            <Label text="Work Title:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                            <TextField fx:id="workFilterField" GridPane.rowIndex="0" GridPane.columnIndex="1" 
+                                      promptText="Enter work title to filter" />
+                            
+                            <Label text="Creator Name:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                            <TextField fx:id="creatorFilterField" GridPane.rowIndex="1" GridPane.columnIndex="1" 
+                                      promptText="Enter creator name to filter" />
+                            
+                            <Label text="Connection Type:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                            <HBox spacing="10" GridPane.rowIndex="2" GridPane.columnIndex="1">
+                                <ComboBox fx:id="connectionTypeComboBox" maxWidth="200" />
+                                <CheckBox fx:id="exactMatchCheckBox" text="Exact Match" />
+                            </HBox>
+                        </GridPane>
+                        
+                        <Separator />
+                        
+                        <Label text="Advanced Filters" styleClass="section-header" />
+                        
+                        <GridPane hgap="10" vgap="10">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="120" prefWidth="150" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                            </columnConstraints>
+                            
+                            <Label text="Premiere Year:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                            <VBox spacing="10" GridPane.rowIndex="0" GridPane.columnIndex="1">
+                                <HBox spacing="5" alignment="CENTER_LEFT">
+                                    <Label text="Min Year:" />
+                                    <Label fx:id="minYearLabel" text="1880" style="-fx-font-weight: bold;" />
+                                    <Slider fx:id="minYearSlider" min="1880" max="2023" 
+                                           prefWidth="300" />
+                                </HBox>
+                                <HBox spacing="5" alignment="CENTER_LEFT">
+                                    <Label text="Max Year:" />
+                                    <Label fx:id="maxYearLabel" text="2023" style="-fx-font-weight: bold;" />
+                                    <Slider fx:id="maxYearSlider" min="1880" max="2023" 
+                                           prefWidth="300" />
+                                </HBox>
+                            </VBox>
+                            
+                            <Label text="Include Types:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                            <HBox spacing="20" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                                <CheckBox fx:id="musicCheckBox" text="Music" selected="true" />
+                                <CheckBox fx:id="librettoCheckBox" text="Libretto" selected="true" />
+                                <CheckBox fx:id="translationCheckBox" text="Translation" selected="true" />
+                            </HBox>
+                            
+                            <Label text="Creator:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                            <ComboBox fx:id="creatorComboBox" GridPane.rowIndex="2" GridPane.columnIndex="1" 
+                                     maxWidth="300" />
+                            
+                            <Label text="Creator Role:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                            <ChoiceBox fx:id="creatorRoleChoice" GridPane.rowIndex="3" GridPane.columnIndex="1" 
+                                      maxWidth="200" />
+                        </GridPane>
+                        
+                        <Button fx:id="filterButton" text="Apply Filters" 
+                                style="-fx-background-color: #4CAF50; -fx-text-fill: white;" 
+                                maxWidth="200" />
+                    </VBox>
+                </TitledPane>
+                
+                <Label text="Results" styleClass="section-header" />
+                <TableView fx:id="filteredConnectionTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="filteredIdColumn" text="ID" prefWidth="50" />
+                        <TableColumn fx:id="filteredWorkColumn" text="Work" prefWidth="250" />
+                        <TableColumn fx:id="filteredConnectionTypeColumn" text="Connection Type" prefWidth="150" />
+                        <TableColumn fx:id="filteredCreatorColumn" text="Creator" prefWidth="250" />
+                    </columns>
+                </TableView>
+            </VBox>
+        </Tab>
+        
+        <!-- Write Tab - Add New Work -->
+        <Tab fx:id="writeTab" text="Write">
+            <VBox spacing="15">
+                <padding>
+                    <Insets top="20" right="20" bottom="20" left="20" />
+                </padding>
+                
+                <Label text="Add New Operetta Work" styleClass="section-header" />
+                
+                <GridPane hgap="10" vgap="15">
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="120" prefWidth="150" />
+                        <ColumnConstraints hgrow="ALWAYS" />
+                    </columnConstraints>
+                    
+                    <Label text="ID:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <TextField fx:id="newWorkIdField" GridPane.rowIndex="0" GridPane.columnIndex="1" 
+                              editable="false" maxWidth="100" />
+                    
+                    <Label text="Title:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <TextField fx:id="newWorkTitleField" GridPane.rowIndex="1" GridPane.columnIndex="1" 
+                              promptText="Enter work title (required)" />
+                    
+                    <Label text="Original Title:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                    <TextField fx:id="newWorkOriginalField" GridPane.rowIndex="2" GridPane.columnIndex="1" 
+                              promptText="Enter original title (if different)" />
+                    
+                    <Label text="Theatre:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                    <TextField fx:id="newWorkTheatreField" GridPane.rowIndex="3" GridPane.columnIndex="1" 
+                              promptText="Enter premiere theatre" />
+                    
+                    <Label text="Premiere Year:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                    <TextField fx:id="newWorkYearField" GridPane.rowIndex="4" GridPane.columnIndex="1" 
+                              promptText="Enter premiere year" maxWidth="150" />
+                    
+                    <Label text="Acts:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                    <TextField fx:id="newWorkActsField" GridPane.rowIndex="5" GridPane.columnIndex="1" 
+                              promptText="Enter number of acts" maxWidth="150" />
+                    
+                    <Label text="Scenes:" GridPane.rowIndex="6" GridPane.columnIndex="0" />
+                    <TextField fx:id="newWorkScenesField" GridPane.rowIndex="6" GridPane.columnIndex="1" 
+                              promptText="Enter number of scenes" maxWidth="150" />
+                </GridPane>
+                
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <Button fx:id="addWorkButton" text="Add Work" 
+                            style="-fx-background-color: #4CAF50; -fx-text-fill: white;" />
+                </HBox>
+                
+                <Label fx:id="addWorkStatusLabel" styleClass="status-label-success" />
+            </VBox>
+        </Tab>
+        
+        <!-- Change Tab - Update Existing Work -->
+        <Tab fx:id="changeTab" text="Change">
+            <VBox spacing="15">
+                <padding>
+                    <Insets top="20" right="20" bottom="20" left="20" />
+                </padding>
+                
+                <Label text="Update Existing Operetta Work" styleClass="section-header" />
+
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Select Work:" />
+                <ComboBox fx:id="workSelectComboBox" maxWidth="Infinity" HBox.hgrow="ALWAYS" 
+                        promptText="Select a work to edit" />
+                <Button text="⟳" onAction="#manualRefreshWorkComboBox">
+                <tooltip>
+                    <Tooltip text="Refresh work list" />
+                </tooltip>
+            </Button>
+            </HBox>
+                
+                <!-- <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Select Work:" />
+                    <ComboBox fx:id="workSelectComboBox" maxWidth="Infinity" HBox.hgrow="ALWAYS" 
+                             promptText="Select a work to edit" />
+                </HBox> -->
+                
+                <GridPane hgap="10" vgap="15">
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="120" prefWidth="150" />
+                        <ColumnConstraints hgrow="ALWAYS" />
+                    </columnConstraints>
+                    
+                    <Label text="Title:" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                    <TextField fx:id="editWorkTitleField" GridPane.rowIndex="0" GridPane.columnIndex="1" 
+                              promptText="Edit work title" />
+                    
+                    <Label text="Original Title:" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                    <TextField fx:id="editWorkOriginalField" GridPane.rowIndex="1" GridPane.columnIndex="1" 
+                              promptText="Edit original title" />
+                    
+                    <Label text="Theatre:" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                    <TextField fx:id="editWorkTheatreField" GridPane.rowIndex="2" GridPane.columnIndex="1" 
+                              promptText="Edit premiere theatre" />
+                    
+                    <Label text="Premiere Year:" GridPane.rowIndex="3" GridPane.columnIndex="0" />
+                    <TextField fx:id="editWorkYearField" GridPane.rowIndex="3" GridPane.columnIndex="1" 
+                              promptText="Edit premiere year" maxWidth="150" />
+                    
+                    <Label text="Acts:" GridPane.rowIndex="4" GridPane.columnIndex="0" />
+                    <TextField fx:id="editWorkActsField" GridPane.rowIndex="4" GridPane.columnIndex="1" 
+                              promptText="Edit number of acts" maxWidth="150" />
+                    
+                    <Label text="Scenes:" GridPane.rowIndex="5" GridPane.columnIndex="0" />
+                    <TextField fx:id="editWorkScenesField" GridPane.rowIndex="5" GridPane.columnIndex="1" 
+                              promptText="Edit number of scenes" maxWidth="150" />
+                </GridPane>
+                
+                <Label text="Work Connections" styleClass="section-header" />
+                <TableView fx:id="workConnectionsTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn text="Connection Type" prefWidth="150">
+                            <cellValueFactory>
+                                <PropertyValueFactory property="connectionType" />
+                            </cellValueFactory>
+                        </TableColumn>
+                        <TableColumn text="Creator" prefWidth="250">
+                            <cellValueFactory>
+                                <PropertyValueFactory property="creatorName" />
+                            </cellValueFactory>
+                        </TableColumn>
+                    </columns>
+                </TableView>
+                
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <Button fx:id="updateWorkButton" text="Update Work" 
+                            style="-fx-background-color: #4CAF50; -fx-text-fill: white;" />
+                </HBox>
+                
+                <Label fx:id="updateWorkStatusLabel" styleClass="status-label-success" />
+            </VBox>
+        </Tab>
+        
+        <!-- Delete Tab - Delete Work -->
+        <Tab fx:id="deleteTab" text="Delete">
+            <VBox spacing="15">
+                <padding>
+                    <Insets top="20" right="20" bottom="20" left="20" />
+                </padding>
+                
+                <Label text="Delete Operetta Work" styleClass="section-header" />
+
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Select Work:" />
+                <ComboBox fx:id="deleteWorkComboBox" maxWidth="Infinity" HBox.hgrow="ALWAYS" 
+                        promptText="Select a work to delete" />
+                        <Button text="⟳" onAction="#manualRefreshDeleteComboBox">
+                        <tooltip>
+                            <Tooltip text="Refresh work list" />
+                        </tooltip>
+                        </Button>
+                
+            </HBox>
+                
+                <!-- <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Label text="Select Work:" />
+                    <ComboBox fx:id="deleteWorkComboBox" maxWidth="Infinity" HBox.hgrow="ALWAYS" 
+                             promptText="Select a work to delete" />
+                </HBox> -->
+                
+                <VBox fx:id="workDetailsBox" spacing="10" 
+                     style="-fx-background-color: #f8f9fa; -fx-border-color: #ddd; -fx-border-radius: 5; -fx-padding: 15;">
+                    <Label text="Work Details:" style="-fx-font-weight: bold;" />
+                    <GridPane hgap="10" vgap="5">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="100" />
+                            <ColumnConstraints hgrow="ALWAYS" />
+                        </columnConstraints>
+                        
+                        <Label text="Title:" style="-fx-font-weight: bold;" GridPane.rowIndex="0" GridPane.columnIndex="0" />
+                        <Label fx:id="workTitleLabel" GridPane.rowIndex="0" GridPane.columnIndex="1" />
+                        
+                        <Label text="Theatre:" style="-fx-font-weight: bold;" GridPane.rowIndex="1" GridPane.columnIndex="0" />
+                        <Label fx:id="workTheatreLabel" GridPane.rowIndex="1" GridPane.columnIndex="1" />
+                        
+                        <Label text="Premiere Year:" style="-fx-font-weight: bold;" GridPane.rowIndex="2" GridPane.columnIndex="0" />
+                        <Label fx:id="workYearLabel" GridPane.rowIndex="2" GridPane.columnIndex="1" />
+                    </GridPane>
+                </VBox>
+                
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <Button fx:id="deleteWorkButton" text="Delete Work" styleClass="danger" />
+                </HBox>
+                
+                <Label fx:id="deleteWorkStatusLabel" />
+            </VBox>
+        </Tab>
+    </TabPane>
+</VBox>

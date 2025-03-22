@@ -1,0 +1,161 @@
+/* Main application styling */
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+    -fx-background-color: #f5f5f5;
+}
+
+/* Tab styling */
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: #2c3e50;
+}
+
+.tab-pane .tab {
+    -fx-background-color: #34495e;
+    -fx-background-radius: 0;
+    -fx-padding: 8 15 8 15;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: #3498db;
+    -fx-focus-color: transparent;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: white;
+    -fx-font-weight: normal;
+}
+
+/* Tab content styling */
+#readTab .tab-content-area {
+    -fx-background-color: #e8f5fe;
+}
+
+#read2Tab .tab-content-area {
+    -fx-background-color: #e8fef5;
+}
+
+#writeTab .tab-content-area {
+    -fx-background-color: #fef5e8;
+}
+
+#changeTab .tab-content-area {
+    -fx-background-color: #f5e8fe;
+}
+
+#deleteTab .tab-content-area {
+    -fx-background-color: #fee8e8;
+}
+
+/* Table styling */
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 3;
+}
+
+.table-view .column-header {
+    -fx-background-color: #3498db;
+    -fx-padding: 10;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.table-view .table-row-cell:odd {
+    -fx-background-color: #f9f9f9;
+}
+
+.table-view .table-row-cell:hover {
+    -fx-background-color: #eaf2fa;
+}
+
+/* Control styling */
+.button {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 3;
+    -fx-padding: 8 15;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #2980b9;
+}
+
+.button.danger {
+    -fx-background-color: #e74c3c;
+}
+
+.button.danger:hover {
+    -fx-background-color: #c0392b;
+}
+
+.label.section-header {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-padding: 5 0;
+}
+
+.combo-box, .text-field, .date-picker {
+    -fx-background-color: white;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 3;
+    -fx-padding: 5;
+}
+
+.check-box .box {
+    -fx-background-color: white;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 3;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #3498db;
+}
+
+/* Filter panel styling */
+.filter-panel {
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 5;
+    -fx-padding: 15;
+}
+
+/* Status label styling */
+.status-label-success {
+    -fx-text-fill: #2ecc71;
+    -fx-font-weight: bold;
+}
+
+.status-label-error {
+    -fx-text-fill: #e74c3c;
+    -fx-font-weight: bold;
+}
+
+/* Connection type chips */
+.connection-type-chip {
+    -fx-background-radius: 15;
+    -fx-padding: 5 10;
+    -fx-font-size: 11px;
+    -fx-text-fill: white;
+}
+
+.music-chip {
+    -fx-background-color: #3498db;
+}
+
+.libretto-chip {
+    -fx-background-color: #e67e22;
+}
+
+.translation-chip {
+    -fx-background-color: #9b59b6;
+}

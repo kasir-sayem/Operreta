@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.BorderPane;
 
 /**
@@ -51,8 +53,23 @@ public class MainController implements Initializable {
      * Load the Forex view
      */
     @FXML
-    private void loadForexView() {
-        loadView("/fxml/forex.fxml");
+    private void loadForexView(ActionEvent event) {
+        try {
+            // Get the menu item that was clicked
+            MenuItem menuItem = (MenuItem) event.getSource();
+            String viewName = menuItem.getText();
+            
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/forex.fxml"));
+            Parent view = loader.load();
+            
+            // Get the controller and tell it which submenu was selected
+            ForexController controller = loader.getController();
+            controller.showSubView(viewName);
+            
+            mainPane.setCenter(view);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
     
     /**
